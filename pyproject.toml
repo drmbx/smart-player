@@ -8,3 +8,21 @@ dependencies = [
     "pyqt6>=6.11.0",
     "ultralytics>=8.4.33",
 ]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.12",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py314"
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = ["RUF", "FBT", "ANN", "SLF", "PTH", "DTZ", "D", "INP", "N", "ARG", "BLE", "TC", "E501"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false

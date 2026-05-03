@@ -1,5 +1,7 @@
-from PyQt6.QtCore import QRunnable, QObject, pyqtSignal
+from PyQt6.QtCore import QObject, QRunnable, pyqtSignal
+
 from .yolo_service import YoloService
+
 
 class YoloSignals(QObject):
     progress = pyqtSignal(int, int)
