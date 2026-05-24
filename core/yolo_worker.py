@@ -7,7 +7,7 @@ class YoloSignals(QObject):
     progress = pyqtSignal(int, int)
     finished = pyqtSignal(list)
     error = pyqtSignal(str)
-    canceled = pyqtSignal()  # Сигнал отмены
+    canceled = pyqtSignal()
 
 class YoloWorker(QRunnable):
     def __init__(self, service: YoloService, image_paths: list[str], conf: float):
@@ -30,7 +30,7 @@ class YoloWorker(QRunnable):
             for i, path in enumerate(self.image_paths):
                 if self._is_cancelled:
                     self.signals.canceled.emit()
-                    return  # Прерываем цикл, поток завершается безопасно
+                    return
 
                 det = self.service.infer_image(path, conf=self.conf)
                 results.append({"path": path, "detections": det})

@@ -31,11 +31,10 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Smart Player")
         self.resize(1200, 800)
 
-        # Состояние приложения
         self._weights_path = "weights/best.pt"
         self._images = []
         self._current_index = 0
-        self._detections = []  # Хранит ВСЕ детекции (conf >= 0.01)
+        self._detections = []
         self._active_worker = None
         self._is_detection_running = False
         self._is_playing = False
@@ -43,23 +42,19 @@ class MainWindow(QMainWindow):
         self._timer = QTimer()
         self._timer.timeout.connect(self._play_step)
 
-        # UI-элементы
         self._progress_bar = QProgressBar()
         self._progress_bar.setTextVisible(True)
         self._progress_bar.hide()
 
         self._build_layout()
 
-        # Дефолтный текст кнопки весов
         self._btn_select_weights.setText(f"{os.path.basename(self._weights_path)}")
 
-        # Инициализация сервисов (строго один раз)
         self._yolo_service = YoloService(self._weights_path)
         self._export_service = ExportService()
         self._thread_pool = QThreadPool.globalInstance()
         self._thread_pool.setMaxThreadCount(4)
 
-        # Подключение сигналов
         self._btn_play.clicked.connect(self._toggle_play)
         self._btn_images_dir.clicked.connect(self._open_images_dir)
         self._btn_prev.clicked.connect(self._show_prev)
@@ -69,7 +64,6 @@ class MainWindow(QMainWindow):
         self._slider.valueChanged.connect(self._on_slider_changed)
         self._spin_fps.valueChanged.connect(self._update_timer_interval)
 
-        # 🔑 Динамическая фильтрация по порогу уверенности
         self._spin_conf.valueChanged.connect(self._on_confidence_changed)
 
         self._btn_detect_all.clicked.connect(self._start_detection)
@@ -78,7 +72,6 @@ class MainWindow(QMainWindow):
         self._btn_export_imgs.clicked.connect(self._start_export_images)
         self._image_view.zoom_changed.connect(self._on_image_zoom_changed)
 
-        # Инициализация UI
         self._update_ui_state()
 
     def _update_ui_state(self) -> None:
@@ -89,13 +82,11 @@ class MainWindow(QMainWindow):
         has_images = bool(self._images)
         has_detections = bool(self._detections)
 
-        # 1. Верхняя панель
         self._btn_detect_all.setEnabled(has_images and not self._is_detection_running)
         self._btn_images_dir.setEnabled(not self._is_detection_running)
         self._btn_export_csv.setEnabled(has_detections)
         self._btn_export_imgs.setEnabled(has_detections)
 
-        # 2. Переключение Детекция ↔ Отмена
         if self._is_detection_running:
             self._btn_detect_all.hide()
             self._btn_cancel_detect.show()
@@ -105,11 +96,9 @@ class MainWindow(QMainWindow):
             self._btn_detect_all.show()
             self._btn_cancel_detect.setEnabled(False)
 
-        # 3. Воспроизведение и слайдер
         self._btn_play.setEnabled(has_images)
         self._slider.setEnabled(has_images)
 
-        # 4. Навигация (учитывает текущий порог уверенности)
         if has_images:
             self._btn_prev.setEnabled(self._current_index > 0)
             self._btn_next.setEnabled(self._current_index < len(self._images) - 1)
@@ -169,7 +158,7 @@ class MainWindow(QMainWindow):
         row.addWidget(self._spin_conf)
         row.addWidget(self._progress_bar, stretch=1)
         row.addStretch()
-        self._label_info = QLabel("Откройте видео или изображения")
+        self._label_info = QLabel("Выберите папку")
         row.addWidget(self._label_info)
         return row
 
@@ -251,7 +240,6 @@ class MainWindow(QMainWindow):
     def _reset_zoom(self) -> None:
         self._image_view.reset_view()
 
-    # ------------------ ЗАГРУЗКА И НАВИГАЦИЯ ------------------
 
     def _open_images_dir(self):
         folder = QFileDialog.getExistingDirectory(self, "Выберите папку с изображениями")
@@ -286,7 +274,6 @@ class MainWindow(QMainWindow):
             self._label_info.setText("Ошибка загрузки изображения")
             return
 
-        # 🔑 Используем отфильтрованные по текущему порогу детекции
         det_for_img = self._get_filtered_detections_for_current_image()
         self._image_view.set_pixmap(pixmap)
         self._image_view.set_detections(det_for_img)
@@ -350,10 +337,8 @@ class MainWindow(QMainWindow):
         self._current_index = value
         self._show_image()
 
-    # 🔑 Мгновенное обновление при изменении порога
     def _on_confidence_changed(self) -> None:
         if self._detections:
-            # Подсчитываем, сколько кадров имеют детекции выше текущего порога
             threshold = self._spin_conf.value()
             count_with_detections = sum(
                 1 for item in self._detections
@@ -369,7 +354,7 @@ class MainWindow(QMainWindow):
             self._label_info.setText(
                 f"Порог {threshold:.2f}: {total_objects} объектов в {count_with_detections} кадрах"
             )
-            self._show_image()  # Перерисует текущий кадр с новым фильтром
+            self._show_image()
 
     def _count_detections_above_threshold(self, threshold: float) -> tuple[int, int]:
         count_frames = 0
@@ -381,7 +366,6 @@ class MainWindow(QMainWindow):
                 count_objects += len(filtered)
         return count_frames, count_objects
 
-    # ------------------ ВОСПРОИЗВЕДЕНИЕ ------------------
 
     def _toggle_play(self):
         if not self._images: return
@@ -411,14 +395,12 @@ class MainWindow(QMainWindow):
         if self._is_playing:
             self._timer.setInterval(int(1000 / self._spin_fps.value()))
 
-    # ------------------ ДЕТЕКЦИЯ ------------------
 
     def _start_detection(self):
         if not self._images or self._active_worker is not None:
             return
 
         self._is_detection_running = True
-        # 🔑 YOLO всегда запускается с минимальным порогом, чтобы сохранить все сырые данные
         conf = 0.01
         self._label_info.setText("Запуск YOLO...")
         self._progress_bar.setValue(0)
@@ -470,7 +452,6 @@ class MainWindow(QMainWindow):
         self._update_ui_state()
         self._show_image()
 
-    # ------------------ ЭКСПОРТ ------------------
 
     def _start_export_csv(self):
         if not self._detections: return
@@ -490,7 +471,6 @@ class MainWindow(QMainWindow):
     def _run_export(self, mode: str, output_path: str):
         threshold = self._spin_conf.value()
 
-        # 🔑 Фильтруем ВСЕ детекции по текущему порогу перед экспортом
         filtered_detections = []
         for item in self._detections:
             filtered_dets = [det for det in item["detections"] if det["conf"] >= threshold]

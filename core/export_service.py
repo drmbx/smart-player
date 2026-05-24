@@ -36,12 +36,11 @@ class ExportService:
 
             for det in item["detections"]:
                 x1, y1, x2, y2 = det["bbox"]
-                color = (0, 255, 0)  # BGR
+                color = (0, 255, 0)
                 cv2.rectangle(img, (x1, y1), (x2, y2), color, 2)
 
                 cls_name = class_names.get(det["cls"], str(det["cls"])) if class_names else str(det["cls"])
                 label = f"{cls_name} {det['conf']:.2f}"
-                # Защита от выхода текста за верхнюю границу
                 text_y = max(20, y1 - 10)
                 cv2.putText(img, label, (x1, text_y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
 

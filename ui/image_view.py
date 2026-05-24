@@ -4,7 +4,7 @@ from PyQt6.QtWidgets import QWidget
 
 
 class ImageView(QWidget):
-    zoom_changed = pyqtSignal(float)  # Сигнал для синхронизации с UI
+    zoom_changed = pyqtSignal(float)
 
     def __init__(self):
         super().__init__()
@@ -17,7 +17,6 @@ class ImageView(QWidget):
 
     def set_pixmap(self, px: QPixmap) -> None:
         self._pixmap = px
-        # ✅ Убрали self._reset_view() отсюда. Зум и позиция теперь сохраняются.
         self.update()
 
     def reset_view(self) -> None:
@@ -78,7 +77,6 @@ class ImageView(QWidget):
                 w, h = x2 - x1, y2 - y1
 
                 painter.setPen(pen)
-                # 🔑 Сбрасываем кисть, чтобы drawRect рисовал только контур
                 painter.setBrush(Qt.BrushStyle.NoBrush)
                 painter.drawRect(QRectF(x1, y1, w, h))
 
